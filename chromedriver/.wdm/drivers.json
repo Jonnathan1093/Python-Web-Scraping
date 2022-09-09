@@ -4,7 +4,7 @@
         "binary_path": "./chromedriver\\.wdm\\drivers\\chromedriver\\win32\\104.0.5112\\chromedriver.exe"
     },
     "win32_chromedriver_105.0.5195_for_105.0.5195": {
-        "timestamp": "08/09/2022",
+        "timestamp": "09/09/2022",
         "binary_path": "./chromedriver\\.wdm\\drivers\\chromedriver\\win32\\105.0.5195\\chromedriver.exe"
     }
 }

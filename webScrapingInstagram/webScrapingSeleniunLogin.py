@@ -1,5 +1,7 @@
+from curses.ascii import isdigit
 from genericpath import isfile
 from json import load
+from operator import le
 import os
 import sys
 from webdriver_manager.chrome import ChromeDriverManager
@@ -135,6 +137,31 @@ def login_instagram ( ) :
     return "Ok"
 
 if __name__ == "__main__" :
+    
+    # Ponemos variables de tipo string
+    modo_de_uso = f" Modo de uso:\n" 
+    modo_de_uso = f" {os.path.basename(sys.executable)} {sys.argv[0]} hashtag[minimo]\n\n" # Indico la manera en que usare el programa
+    modo_de_uso = f" opciones: \n"
+    modo_de_uso = f"    minimo: minimo de descargas a realizar (por defecto 100)\n\n"
+    modo_de_uso = f" Ejemplos:\n"
+    modo_de_uso = f" {os.path.basename(sys.executable)} {sys.argv[0]} cats\n"
+    modo_de_uso = f" {os.path.basename(sys.executable)} {sys.argv[0]} superman 100\n"
+    
+    # Control de parametos
+    if len(sys.argv) == 1 or len(sys.argv) >3:
+        print(modo_de_uso)
+        sys.exit(1)
+    elif len(sys.argv) == 3: # Puede darse que el argumento sea 3
+        if sys.argv[2].isdigit(): # Es decir si se cumple esto se definira una constante "MINIMO"
+            MINIMO = int(sys.argv[2]) # Se convierte el string en un entero
+        else:
+            print(f" Error: {sys.argv[2]} no es un numero")
+            sys.exit(1)
+    # Nos queda un posible caso, es decir que el usuario solo haya puesto el hashtag
+    else:
+        MINIMO = 100    
+    HASHTAG = sys.argv[1].strip("#") # como el hashtag es obligatorio este parametro siempre existiara
+    
     # iniciamos selenium
     driver = iniciar_chrome()
     # Configuramos el tiempo de espera para cargar elementos
