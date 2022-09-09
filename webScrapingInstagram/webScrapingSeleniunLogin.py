@@ -1,3 +1,6 @@
+from genericpath import isfile
+from json import load
+import os
 import sys
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium import webdriver
@@ -65,6 +68,30 @@ def iniciar_chrome():
 def login_instagram ( ) :
     # Realiza login en Instagram , si es posible por cookies y sino desde cero " " "
     
+    # comprobamos si existe el archico de cookies
+    print("Login en Instagran por COOKIES")
+    if os.path.isfile("instagram.cookies"):
+    # Leemos las cookies del archivo
+        cookies = pickle.load(open("instagram.cookies", "rb"))
+        # Cargamos robots.txt del dominio instagram
+        driver.get("https://www.instagram.com/robots.txt")
+        # recorremos el objeto cookies y las añadimos al driver
+        for cookie in cookies:
+            driver.add_cookie(cookie) 
+        # Comprobamos si el login por cookies funciona
+        driver.get("https://www.instagram.com/")
+        try:
+            elemento = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "article[role='presentation']"))) 
+            print("Login desde COOKIES: Correcto")
+            return "Ok"
+        except TimeoutException:
+            print("Error: El feed de noticias no se ha cargado")
+            return "Error"
+    else: # Si no existe el archivo de las cookies
+        print("Alerta: El archivo de cookies no existe")
+    
+    # input("Pausa...") # Ponemos este input para hacer una pausa y comprobar si funciona o no las cookies   
+        
     # abrimos la página de Instagram
     print('Login en INSTAGRAM desde CERO')
     driver.get(" https://www.instagram.com/")
