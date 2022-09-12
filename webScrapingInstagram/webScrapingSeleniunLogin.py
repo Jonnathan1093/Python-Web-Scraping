@@ -1,9 +1,4 @@
-from curses.ascii import isdigit
-from genericpath import isfile
-from json import load
-from operator import le
-import os
-import sys
+from cgi import print_arguments
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -14,7 +9,12 @@ from config_instagram import * # Importamos la configuracion de instagram
 from selenium.webdriver.support.ui import WebDriverWait # para esperar por elementos en selenium
 from selenium.webdriver.support import expected_conditions as EC # para condiciones en selenium
 from selenium.common.exceptions import TimeoutException # exepcion de timeout en selenium
+from selenium.webdriver.common.keys import Keys # para pulsar teclas especiales
+import os
+import sys
+import time
 import pickle # para cargar / guardar las cookies
+import wget # para descargar archivos
 
 # Inicia Chrome con los parametris indicados y devuelve el driver
 def iniciar_chrome():
@@ -67,6 +67,14 @@ def iniciar_chrome():
     driver.set_window_position(0,0) #posicionamos la ventana en la coordenada 0,0
     return driver # devolvemos el driver
     
+def cursor_arriba(n=1):
+    # Sube el cursor n vecees 
+    print(f" \033[{n}A", end="")
+    
+def raya():
+    # escribe tantos guiones como ancha sea la terminal
+    print("-"*os.get_terminal_size().columns) 
+    
 def login_instagram ( ) :
     # Realiza login en Instagram , si es posible por cookies y sino desde cero " " "
     
@@ -98,13 +106,13 @@ def login_instagram ( ) :
     print('Login en INSTAGRAM desde CERO')
     driver.get(" https://www.instagram.com/")
     
-    """ elemento = driver.find_element(By.XPATH,  "/html/body/script[1]/text()") # Lo utilizamos en caso de que salga la ventana de cookies
-    elemento.click() # Permite hacer click en el elemento en caso tengamos una ventana de cookies
+    # elemento = driver.find_element(By.XPATH,  "/html/body/script[1]/text()") # Lo utilizamos en caso de que salga la ventana de cookies
+    # elemento.click() # Permite hacer click en el elemento en caso tengamos una ventana de cookies
     # Puede ocurrir una exepcion, debido a que vamos muy rapido, justo al momento de entrar en la ventana esta automanticamente 
     # realiza la opcion de click que se hizo antes, para solucionar ello podemos hacer una pequeña pausa, debemps importar la libreria time
-    time.sleep(5)
-     """
-    """ TODO ESTO PUEDE SER REEMPLAZADO EN LAS LIENAS DE ABAJO
+    # time.sleep(5)
+    
+    """ ESTO PUEDE SER REEMPLAZADO EN LAS LIENAS DE ABAJO
     # elemento = driver.find_element(By.NAME, "username") # NAME es otro metodo para localizar elementos
     # elemento = driver.find_element(By.NAME, "password") # NAME es otro metodo para localizar elementos """
     
@@ -136,19 +144,53 @@ def login_instagram ( ) :
     print("Cookies guardadas")
     return "Ok"
 
+def descargar_fotos_instagram(hashtag, minimo):
+    # Descarga las fotos del hashtag indicado
+
+    # Realizamos la peticion
+    print(f"Buscando por hashtag #{hashtag}")
+    driver.get(f"https://www.instagram.com/explore/tags/{hashtag}")
+    #  realizamos scroll de la pagina
+    url_fotos = set() # conjunto vacio en el que iremos añadiendo los link de las fotos
+    while len(url_fotos) < minimo:
+        # Ejecutamos script de javascript que realiza scroll hasta el final de la pagina
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight)") # window.scrollTo(0, document.body.scrollHeight); | este es un codigo de javascrip que ayuda a realizar scroll o avanzar pagina
+        elemetos = driver.find_elements(By.CSS_SELECTOR, "div._aagu")
+        for elemento in elemetos:
+            try:
+                url = elemento.find_element(By.CSS_SELECTOR, "img").get_attribute("src")
+                url_fotos.add(url)
+            except:
+                pass
+        print(f"Total fotos: {len(url_fotos)}")
+        cursor_arriba()
+        
+    # Creamos una carpeta con el nombre del hasg¿htag
+    if not os.path.exists(hashtag):
+        os.mkdir(hashtag)
+    # Descargamos las fotos del conjunto
+    n = 0 # Numero de foto en curso
+    for url_foto in url_fotos:
+        n+= 1
+        print(f"Descargando {n} de {len(url)}")
+        nombre_archivo = wget.download(url_foto, hashtag) # Como primer argumento url_fotos que es el enlace que vamos a descargar, y 2ndo argumento indicamos la carpeta donde queremos descargar 
+        cursor_arriba()
+        print(f"\33[K descargando {nombre_archivo}")
+        print()
+    return len(url_fotos)
+        
 if __name__ == "__main__" :
-    
     # Ponemos variables de tipo string
-    modo_de_uso = f" Modo de uso:\n" 
-    modo_de_uso = f" {os.path.basename(sys.executable)} {sys.argv[0]} hashtag[minimo]\n\n" # Indico la manera en que usare el programa
-    modo_de_uso = f" opciones: \n"
-    modo_de_uso = f"    minimo: minimo de descargas a realizar (por defecto 100)\n\n"
-    modo_de_uso = f" Ejemplos:\n"
-    modo_de_uso = f" {os.path.basename(sys.executable)} {sys.argv[0]} cats\n"
-    modo_de_uso = f" {os.path.basename(sys.executable)} {sys.argv[0]} superman 100\n"
+    modo_de_uso = f'Modo de uso:\n'
+    modo_de_uso = input(f'{os.path.basename(sys.executable)} {sys.argv[0]} hashtag[minimo]\n\n')
+    modo_de_uso = f'opciones: \n'
+    modo_de_uso = f'minimo: minimo de descargas a realizar (por defecto 300)\n\n'
+    modo_de_uso = f'Ejemplos:\n'
+    modo_de_uso = f'{os.path.basename(sys.executable)} {sys.argv[0]} cats\n'
+    modo_de_uso = f'{os.path.basename(sys.executable)} {sys.argv[0]} superman 300\n'
     
-    # Control de parametos
-    if len(sys.argv) == 1 or len(sys.argv) >3:
+     # Control de parametos
+    if len(sys.argv) == 1 or len(sys.argv) > 3:
         print(modo_de_uso)
         sys.exit(1)
     elif len(sys.argv) == 3: # Puede darse que el argumento sea 3
@@ -157,10 +199,9 @@ if __name__ == "__main__" :
         else:
             print(f" Error: {sys.argv[2]} no es un numero")
             sys.exit(1)
-    # Nos queda un posible caso, es decir que el usuario solo haya puesto el hashtag
-    else:
+    else:    # Nos queda un posible caso, es decir que el usuario solo haya puesto el hashtag
         MINIMO = 100    
-    HASHTAG = sys.argv[1].strip("#") # como el hashtag es obligatorio este parametro siempre existiara
+    HASHTAG = sys.argv[1].strip('#') # como el hashtag es obligatorio este parametro siempre existiara
     
     # iniciamos selenium
     driver = iniciar_chrome()
@@ -168,11 +209,15 @@ if __name__ == "__main__" :
     wait = WebDriverWait(driver, 10) # Tiempo de espera hasta que un elemento este disponible
     #nos logueamos en Instagram
     res = login_instagram()
-    if res == "Error":
+    if res == "Error": # si se produce un error en el login
         input("Pulsa enter para salir") # Pausa para poder ver el error
         driver.quit() # cerramos chrome
         sys.exit(1) # salimos del programa
-    input("Pulsa enter para salir")
+    raya() # Linea separadora
+    # Descargamos las fotos del hashtag indicado
+    res = descargar_fotos_instagram(HASHTAG, MINIMO)
+    print(f"Se han descargado {res} fotos")
+    # input("Pulsa enter para salir")
     driver.quit()
     
     
